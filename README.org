@@ -1,0 +1,7 @@
+#+DATE: <2023-02-26 Sun 21:54>
+#+AUTHOR: Cycoe
+
+** Lisp Interpretor
+Write a Lisp interpretor in Haskell from scratch
+
+** TODO Features
