@@ -2,7 +2,7 @@
 module Libs.Parser where
 
 import Text.ParserCombinators.Parsec (GenParser, option, string, many1, many, digit,
-                                      oneOf, letter, (<|>), try)
+                                      oneOf, letter, (<|>), try, char, sepBy, spaces)
 import Libs.Expr (LispExpr(..))
 
 intP :: GenParser Char st LispExpr
@@ -18,5 +18,9 @@ symbolP = LispSymbol <$> do
   return (f:r) where
     firstAllowed = oneOf "+-*/" <|> letter
 
+listP :: GenParser Char st LispExpr
+listP = LispList <$> do
+  char '(' *> sepBy lispP spaces <* char ')'
+
 lispP :: GenParser Char st LispExpr
-lispP = try intP <|> try symbolP
+lispP = try intP <|> try symbolP <|> listP
