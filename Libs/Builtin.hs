@@ -13,7 +13,7 @@ intBinaryOp :: (Integer -> Integer -> Integer) -> [LispExpr] -> LispState
 intBinaryOp op (x:xs) = return . LispInt $ foldl op (unwrapInt x) (map unwrapInt xs) where
   unwrapInt :: LispExpr -> Integer
   unwrapInt (LispInt i) = i
-  unwrapInt _           = undefined
+  unwrapInt expr        = undefined
 
 symbols :: Context
 symbols = Map.fromList

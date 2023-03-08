@@ -3,6 +3,7 @@ module Libs.Expr where
 import qualified Data.Map as Map
 import Data.List (mapAccumL)
 import Control.Monad.State (StateT, MonadState (get))
+import Control.Monad.Except (ExceptT, MonadError (throwError))
 
 data LispExpr = LispInt Integer
               | LispSymbol String
@@ -11,7 +12,8 @@ data LispExpr = LispInt Integer
               | LispList [LispExpr]
 
 type Context   = Map.Map String LispExpr
-type LispState = StateT Context IO LispExpr
+type LispError = ExceptT String IO
+type LispState = StateT Context LispError LispExpr
 
 instance Show LispExpr where
   show :: LispExpr -> String
@@ -31,3 +33,5 @@ eval (LispList (x:xs))  = do
   apply fn where
     apply (LispQuot f) = f xs
     apply (LispFunc f) = mapM eval xs >>= f
+    apply expr         = throwError $ "[eval] " ++ show expr ++ " cannot call as function"
+eval (LispList []) = throwError "[eval] Cannot eval empty list"
