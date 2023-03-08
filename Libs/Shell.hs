@@ -4,6 +4,7 @@ import System.Console.Haskeline (InputT, getInputLine, outputStrLn)
 import Text.ParserCombinators.Parsec (runParser)
 import Libs.Expr (Context, eval)
 import Libs.Parser (lispP)
+import Control.Monad.State (runStateT, liftIO)
 
 shell :: Context -> InputT IO ()
 shell ctx = do
@@ -13,6 +14,6 @@ shell ctx = do
     Just line -> case runParser lispP "" "Lisp interpretor" line of
       Left error -> outputStrLn $ show error
       Right expr -> do
+        (expr', ctx') <- liftIO $ runStateT (eval expr) ctx
         outputStrLn (show (ctx', expr'))
-        shell ctx' where
-          (ctx', expr') = eval ctx expr
+        shell ctx'

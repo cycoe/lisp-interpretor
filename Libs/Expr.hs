@@ -2,14 +2,16 @@ module Libs.Expr where
 
 import qualified Data.Map as Map
 import Data.List (mapAccumL)
+import Control.Monad.State (StateT, MonadState (get))
 
 data LispExpr = LispInt Integer
               | LispSymbol String
-              | LispFunc (Context -> [LispExpr] -> (Context, LispExpr))
-              | LispQuot (Context -> [LispExpr] -> (Context, LispExpr))
+              | LispFunc ([LispExpr] -> LispState)
+              | LispQuot ([LispExpr] -> LispState)
               | LispList [LispExpr]
 
-type Context = Map.Map String LispExpr
+type Context   = Map.Map String LispExpr
+type LispState = StateT Context IO LispExpr
 
 instance Show LispExpr where
   show :: LispExpr -> String
@@ -19,15 +21,13 @@ instance Show LispExpr where
   show (LispQuot _) = "<special-form>"
   show (LispList xs) = "(" ++ unwords (show <$> xs) ++")"
 
-eval :: Context -> LispExpr -> (Context, LispExpr)
-eval ctx (LispInt i)        = (ctx, LispInt i)
-eval ctx (LispSymbol s)     = (ctx, ctx Map.! s)
-eval ctx (LispFunc f)       = (ctx, LispFunc f)
-eval ctx (LispQuot f)       = (ctx, LispQuot f)
-eval ctx (LispList (x:xs))  =
-  let (new_ctx, fn) = eval ctx x
-      (last_ctx, eval_args) = mapAccumL eval new_ctx xs
-      apply (LispFunc f) = f last_ctx eval_args
-      apply (LispQuot f) = f new_ctx xs
-      apply _            = undefined
-  in  apply fn
+eval :: LispExpr -> LispState
+eval (LispInt i)        = return $ LispInt i
+eval (LispFunc f)       = return $ LispFunc f
+eval (LispQuot f)       = return $ LispQuot f
+eval (LispSymbol s)     = flip (Map.!) s <$> get
+eval (LispList (x:xs))  = do
+  fn <- eval x
+  apply fn where
+    apply (LispQuot f) = f xs
+    apply (LispFunc f) = mapM eval xs >>= f

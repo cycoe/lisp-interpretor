@@ -1,13 +1,16 @@
 module Libs.Builtin where
 
 import qualified Data.Map as Map
-import Libs.Expr (LispExpr(..), Context)
+import Libs.Expr (LispExpr(..), Context, LispState)
+import Control.Monad.State (modify)
 
-lispSet :: Context -> [LispExpr] -> (Context, LispExpr)
-lispSet ctx [LispSymbol s, expr] = (Map.insert s expr ctx, expr)
+lispSet :: [LispExpr] -> LispState
+lispSet [LispSymbol s, expr] = do
+  modify $ Map.insert s expr
+  return expr
 
-intBinaryOp :: (Integer -> Integer -> Integer) -> Context -> [LispExpr] -> (Context, LispExpr)
-intBinaryOp op ctx (x:xs) = (ctx, LispInt $ foldl op (unwrapInt x) (map unwrapInt xs)) where
+intBinaryOp :: (Integer -> Integer -> Integer) -> [LispExpr] -> LispState
+intBinaryOp op (x:xs) = return . LispInt $ foldl op (unwrapInt x) (map unwrapInt xs) where
   unwrapInt :: LispExpr -> Integer
   unwrapInt (LispInt i) = i
   unwrapInt _           = undefined
