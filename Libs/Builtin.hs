@@ -1,25 +1,39 @@
 module Libs.Builtin where
 
 import qualified Data.Map as Map
-import Libs.Expr (LispExpr(..), Context, LispState)
-import Control.Monad.State (modify)
+import Libs.Expr (LispExpr(..), Context, LispState, FunctionSignature, eval, getSymbols, getSymbol)
+import Control.Monad.State (modify, MonadState (get))
 
-lispSet :: [LispExpr] -> LispState
-lispSet [LispSymbol s, expr] = do
-  modify $ Map.insert s expr
-  return expr
+lispSetArgs :: FunctionSignature
+lispSetArgs = ["symbol", "expr"]
+lispSet :: LispState
+lispSet = do
+  [LispSymbol s, expr] <- getSymbols lispSetArgs
+  eval_e <- eval expr
+  modify $ Map.insert s eval_e
+  return eval_e
 
-intBinaryOp :: (Integer -> Integer -> Integer) -> [LispExpr] -> LispState
-intBinaryOp op (x:xs) = return . LispInt $ foldl op (unwrapInt x) (map unwrapInt xs) where
+lispLambdaArgs :: FunctionSignature
+lispLambdaArgs = ["args", "body"]
+lispLambda :: LispState
+lispLambda = do
+  [LispList args, body] <- getSymbols lispLambdaArgs
+  return $ LispFunc (eval body) ((\(LispSymbol arg) -> arg) <$> args)
+
+intBinaryOp :: (Integer -> Integer -> Integer) -> LispState
+intBinaryOp op = do
+  LispList (x:xs) <- getSymbol "..."
+  return . LispInt $ foldl op (unwrapInt x) (map unwrapInt xs) where
   unwrapInt :: LispExpr -> Integer
   unwrapInt (LispInt i) = i
   unwrapInt expr        = undefined
 
 symbols :: Context
 symbols = Map.fromList
-  [ ("set", LispQuot lispSet)
-  , ("+", LispFunc (intBinaryOp (+)))
-  , ("-", LispFunc (intBinaryOp (-)))
-  , ("*", LispFunc (intBinaryOp (*)))
-  , ("/", LispFunc (intBinaryOp div))
+  [ ("set", LispQuot lispSet lispSetArgs)
+  , ("lambda", LispQuot lispLambda lispLambdaArgs)
+  , ("+", LispFunc (intBinaryOp (+)) ["..."])
+  , ("-", LispFunc (intBinaryOp (-)) ["..."])
+  , ("*", LispFunc (intBinaryOp (*)) ["..."])
+  , ("/", LispFunc (intBinaryOp div) ["..."])
   ]
