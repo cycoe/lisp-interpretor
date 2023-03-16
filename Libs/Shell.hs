@@ -13,7 +13,7 @@ shell ctx = do
   case mline of
     Nothing   -> shell ctx
     Just line -> case runParser lispP "" "Lisp interpretor" line of
-      Left error -> outputStrLn $ show error
+      Left error -> outputStrLn (show error) >> shell ctx
       Right expr -> do
         result <- liftIO $ runExceptT (runStateT (eval expr) ctx)
         case result of
