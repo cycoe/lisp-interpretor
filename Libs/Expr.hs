@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 module Libs.Expr where
 
 import qualified Data.Map as Map
