@@ -1,7 +1,7 @@
 module Libs.Builtin where
 
 import qualified Data.Map as Map
-import Libs.Expr (LispExpr(..), Context, LispState, FunctionSignature, eval, getSymbols, getSymbol)
+import Libs.Expr (LispExpr(..), Context(..), LispState, FunctionSignature, eval, getSymbols, getSymbol, updateSymbolInParent)
 import Control.Monad.State (modify, MonadState (get))
 import Control.Monad.Except (MonadError(throwError))
 
@@ -11,7 +11,7 @@ lispSet :: LispState
 lispSet = do
   [LispSymbol s, expr] <- getSymbols lispSetArgs
   eval_e <- eval expr
-  modify $ Map.insert s eval_e
+  updateSymbolInParent s eval_e
   return eval_e
 
 lispLambdaArgs :: FunctionSignature
@@ -60,7 +60,7 @@ intBinaryOp op = do
   unwrapInt expr        = undefined
 
 symbols :: Context
-symbols = Map.fromList
+symbols = Context (Map.fromList
   [ ("set", LispQuot lispSet lispSetArgs)
   , ("lambda", LispQuot lispLambda lispLambdaArgs)
   , ("if", LispQuot lispIf lispIfArgs)
@@ -75,4 +75,4 @@ symbols = Map.fromList
   , ("-", LispFunc (intBinaryOp (-)) ["..."])
   , ("*", LispFunc (intBinaryOp (*)) ["..."])
   , ("/", LispFunc (intBinaryOp div) ["..."])
-  ]
+  ]) Nothing
