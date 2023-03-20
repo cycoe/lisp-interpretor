@@ -10,6 +10,7 @@ import Libs.Builtin (symbols)
 
 data ShellCommand = LoadSources [FilePath]
                   | RunLispExpr LispExpr
+                  | ContextShow
                   deriving Show
 
 builtinP :: GenParser Char st ShellCommand
@@ -18,6 +19,7 @@ builtinP = do
   args <- sepEndBy (many1 $ noneOf " \t\v") spaces
   case args of
     ("l":paths) -> return $ LoadSources paths
+    ("c":_)     -> return ContextShow
     unhandled   -> unexpected $ show unhandled
 
 shellP :: GenParser Char st ShellCommand
@@ -44,10 +46,11 @@ shell ctx = do
       Left err -> outputStrLn (show err) >> shell ctx
       Right cmd -> case cmd of
         LoadSources paths -> loadSources symbols paths >>= shell
+        ContextShow -> outputStrLn (show ctx) >> shell ctx
         RunLispExpr expr -> do
           result <- liftIO $ runExceptT (runStateT (eval expr) ctx)
           case result of
             Left error -> outputStrLn error >> shell ctx
             Right (expr', ctx') -> do
-              outputStrLn (show (ctx', expr'))
+              outputStrLn (show expr')
               shell ctx'
