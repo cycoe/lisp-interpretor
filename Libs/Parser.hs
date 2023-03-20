@@ -23,4 +23,6 @@ listP = LispList <$> do
   char '(' *> sepBy lispP spaces <* char ')'
 
 lispP :: GenParser Char st LispExpr
-lispP = try intP <|> try symbolP <|> listP
+lispP = spaces *>
+        try intP <|> try symbolP <|> listP
+        <* spaces
