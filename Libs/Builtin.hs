@@ -51,6 +51,47 @@ lispNot = do
     LispInt i -> return . LispInt $ if i == 0 then 1 else 0
     other -> throwError $ "[lispNot] cond [" ++ show other ++ "] MUST be LispInt!"
 
+lispQuote :: LispState
+lispQuote = getSymbol "..."
+
+lispCarArgs :: FunctionSignature
+lispCarArgs = ["list"]
+lispCar :: LispState
+lispCar = do
+  [expr] <- getSymbols lispCarArgs
+  case expr of
+    LispList (x:_) -> return x
+    LispList []    -> throwError "[lispCar] Empty list!"
+    unhandled      -> throwError $ "[lispCar] CANNOT apply car on [" ++ show unhandled ++ "]!"
+
+lispCdrArgs :: FunctionSignature
+lispCdrArgs = ["list"]
+lispCdr :: LispState
+lispCdr = do
+  [expr] <- getSymbols lispCdrArgs
+  case expr of
+    LispList (_:xs) -> return $ LispList xs
+    LispList []     -> throwError "[lispCdr] Empty list!"
+    unhandled       -> throwError $ "[lispCdr] CANNOT apply cdr on [" ++ show unhandled ++ "]!"
+
+lispConsArgs :: FunctionSignature
+lispConsArgs = ["item", "list"]
+lispCons :: LispState
+lispCons = do
+  [x, expr] <- getSymbols lispConsArgs
+  case expr of
+    LispList xs -> return . LispList $ x:xs
+    unhandled   -> throwError $ "[lispCons] CANNOT cons with [" ++ show unhandled ++ "]!"
+
+lispMapArgs :: FunctionSignature
+lispMapArgs = ["func", "list"]
+lispMap :: LispState
+lispMap = do
+  [f, l] <- getSymbols lispMapArgs
+  case l of
+    LispList xs -> LispList <$> mapM (eval . LispList . (f:) . (:[]))  xs
+    unhandled   -> throwError $ "[lispMap] Cannot apply map on [" ++ show unhandled ++ "]!"
+
 intBinaryOp :: (Integer -> Integer -> Integer) -> LispState
 intBinaryOp op = do
   LispList (x:xs) <- getSymbol "..."
@@ -71,6 +112,11 @@ symbols = Context (Map.fromList
   , ("lt", LispFunc (lispCmp (<)) lispCmpArgs)
   , ("le", LispFunc (lispCmp (<=)) lispCmpArgs)
   , ("not", LispFunc lispNot lispNotArgs)
+  , ("quot", LispQuot lispQuote ["..."])
+  , ("car", LispFunc lispCar lispCarArgs)
+  , ("cdr", LispFunc lispCdr lispCdrArgs)
+  , ("cons", LispFunc lispCons lispConsArgs)
+  , ("map", LispFunc lispMap lispMapArgs)
   , ("+", LispFunc (intBinaryOp (+)) ["..."])
   , ("-", LispFunc (intBinaryOp (-)) ["..."])
   , ("*", LispFunc (intBinaryOp (*)) ["..."])
