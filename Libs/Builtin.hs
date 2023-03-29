@@ -2,7 +2,7 @@ module Libs.Builtin where
 
 import qualified Data.Map as Map
 import Libs.Expr (LispExpr(..), Context(..), LispState, FunctionSignature, eval, getSymbols, getSymbol, updateSymbolInParent)
-import Control.Monad.State (modify, MonadState (get))
+import Control.Monad.State (modify, MonadState (get), MonadIO (liftIO))
 import Control.Monad.Except (MonadError(throwError))
 
 lispSetArgs :: FunctionSignature
@@ -58,6 +58,28 @@ lispNot = do
   case cond of
     LispInt i -> return . LispInt $ if i == 0 then 1 else 0
     other -> throwError $ "[lispNot] cond [" ++ show other ++ "] MUST be LispInt!"
+
+lispGetStrArgs :: FunctionSignature
+lispGetStrArgs = ["prompt"]
+lispGetStr :: LispState
+lispGetStr = do
+  [prompt] <- getSymbols lispGetStrArgs
+  case prompt of
+    LispString s -> fmap LispString . liftIO $ do
+      putStr s
+      getLine
+    unhandled -> throwError $ "[lispGetStr] INVALID prompt [" ++ show unhandled ++ "]!"
+
+lispPutStrArgs :: FunctionSignature
+lispPutStrArgs = ["string"]
+lispPutStr :: LispState
+lispPutStr = do
+  [expr] <- getSymbols lispPutStrArgs
+  case expr of
+    LispString s -> do
+      liftIO $ putStr s
+      return $ LispString s
+    unhandled -> throwError $ "[lispPutStr] INVALID LispString [" ++ show unhandled ++ "]!"
 
 lispQuote :: LispState
 lispQuote = getSymbol "..."
@@ -121,6 +143,8 @@ symbols = Context (Map.fromList
   , ("lt", LispFunc (lispCmp (<)) lispCmpArgs)
   , ("le", LispFunc (lispCmp (<=)) lispCmpArgs)
   , ("not", LispFunc lispNot lispNotArgs)
+  , ("getstr", LispFunc lispGetStr lispGetStrArgs)
+  , ("putstr", LispFunc lispPutStr lispPutStrArgs)
   , ("quot", LispQuot lispQuote ["..."])
   , ("car", LispFunc lispCar lispCarArgs)
   , ("cdr", LispFunc lispCdr lispCdrArgs)
