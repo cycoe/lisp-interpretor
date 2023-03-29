@@ -7,6 +7,8 @@ import Control.Monad.State (StateT, MonadState (get), modify)
 import Control.Monad.Except (ExceptT, MonadError (throwError))
 
 data LispExpr = LispInt Integer
+              | LispChar Char
+              | LispString String
               | LispSymbol String
               | LispFunc LispState FunctionSignature
               | LispQuot LispState FunctionSignature
@@ -21,6 +23,8 @@ type LispState   = StateT Context LispError LispExpr
 instance Show LispExpr where
   show :: LispExpr -> String
   show (LispInt i)    = show i
+  show (LispChar c)   = show c
+  show (LispString s) = show s
   show (LispSymbol s) = s
   show (LispFunc _ sign) = "<function>" ++ show sign
   show (LispQuot _ sign) = "<special-form>" ++ show sign
@@ -28,6 +32,8 @@ instance Show LispExpr where
 
 eval :: LispExpr -> LispState
 eval (LispInt i)        = return $ LispInt i
+eval (LispChar c)       = return $ LispChar c
+eval (LispString s)     = return $ LispString s
 eval (LispFunc f sign)  = return $ LispFunc f sign
 eval (LispQuot f sign)  = return $ LispQuot f sign
 eval (LispSymbol s)     = getSymbol s
