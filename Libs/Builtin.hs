@@ -14,6 +14,14 @@ lispSet = do
   updateSymbolInParent s eval_e
   return eval_e
 
+lispProg :: LispState
+lispProg = do
+  LispList exprs <- getSymbol "..."
+  results <- mapM eval exprs
+  case results of
+    [] -> throwError "[lispProg] prog list CANNOT be empty!"
+    rs -> return $ last rs
+
 lispLambdaArgs :: FunctionSignature
 lispLambdaArgs = ["args", "body"]
 lispLambda :: LispState
@@ -103,6 +111,7 @@ intBinaryOp op = do
 symbols :: Context
 symbols = Context (Map.fromList
   [ ("set", LispQuot lispSet lispSetArgs)
+  , ("prog", LispQuot lispProg ["..."])
   , ("lambda", LispQuot lispLambda lispLambdaArgs)
   , ("if", LispQuot lispIf lispIfArgs)
   , ("eq", LispFunc (lispCmp (==)) lispCmpArgs)
